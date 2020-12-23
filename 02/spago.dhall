@@ -4,7 +4,7 @@ You can edit this file as you like.
 -}
 { name = "03t"
 , dependencies =
-  [ "console", "debug", "effect", "psci-support", "string-parsers" ]
+  [ "console", "debug", "effect", "psci-support", "string-parsers", "lib" ]
 , packages = ../packages.dhall
 , sources = [ "src/**/*.purs", "test/**/*.purs" ]
 }

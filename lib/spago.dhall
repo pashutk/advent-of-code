@@ -1,5 +1,6 @@
 { name = "lib"
-, dependencies = [ "console", "effect", "psci-support", "prelude" ]
+, dependencies =
+  [ "console", "effect", "prelude", "psci-support", "string-parsers" ]
 , packages = ../packages.dhall
 , sources = [ "src/**/*.purs", "test/**/*.purs" ]
 }

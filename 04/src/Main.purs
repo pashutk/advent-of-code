@@ -6,9 +6,7 @@ import Control.Alt (alt, (<|>))
 import Data.Array (fromFoldable)
 import Data.Char (toCharCode)
 import Data.Either (isRight)
-import Data.Foldable (elem, fold, foldl, length)
-import Data.FoldableWithIndex (foldrWithIndex)
-import Data.Int (pow)
+import Data.Foldable (elem, fold, foldl)
 import Data.List (List, filter, findIndex, (..))
 import Data.List as L
 import Data.Maybe (isNothing)
@@ -18,30 +16,10 @@ import Data.Tuple (Tuple(..), fst)
 import Effect (Effect)
 import Effect.Console (log)
 import Input (input)
+import Lib.Parser (digit, emptyLine, int, manyAs1, oneConsecChar)
 import Text.Parsing.StringParser (Parser, fail, runParser, try)
-import Text.Parsing.StringParser.CodeUnits (alphaNum, char, oneOf, satisfy, string)
-import Text.Parsing.StringParser.Combinators (lookAhead, many, many1, sepBy)
-
-parserDigitInt :: Parser Int
-parserDigitInt = string "0" $> 0
-    <|> string "1" $> 1
-    <|> string "2" $> 2
-    <|> string "3" $> 3
-    <|> string "4" $> 4
-    <|> string "5" $> 5
-    <|> string "6" $> 6
-    <|> string "7" $> 7
-    <|> string "8" $> 8
-    <|> string "9" $> 9
-
-parserDigit :: Parser Char
-parserDigit = oneOf ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
-
--- Works only for small ints when radix is 10 (~ <2^31)
-parserInt :: Int -> Parser Int
-parserInt radix = f <*> length <$> many1 parserDigitInt where
-    f ns l = foldrWithIndex f' 0 ns where
-        f' i a b = pow radix (l - i - 1) * a + b
+import Text.Parsing.StringParser.CodeUnits (alphaNum, char, satisfy, string)
+import Text.Parsing.StringParser.Combinators (many, many1, sepBy)
 
 data Pair = BirthYear String
   | PassportID String
@@ -92,21 +70,9 @@ parserPair = do
   v <- (many $ alphaNum <|> (char '#'))
   pure $ Tuple k $ fold $ map singleton v
 
-parserLineSep :: Parser Char
-parserLineSep = do
-  _ <- char '\n'
-  a <- char '\n'
-  pure a
-
-parserOneChar :: Char -> Parser Char
-parserOneChar c = try do
-  a <- char c
-  b <- lookAhead $ satisfy (_ /= c)
-  pure a
-
 parser :: Parser (List Passport)
-parser = sepBy parserRow parserLineSep where
-  parserPairSep = many $ char ' ' $> ' ' <|> (parserOneChar '\n')
+parser = sepBy parserRow emptyLine where
+  parserPairSep = manyAs1 ' ' <|> oneConsecChar '\n'
   parserRow = sepBy parserPair parserPairSep
 
 isValidPassportWeak :: Passport -> Boolean
@@ -141,14 +107,14 @@ isValidPassport = filter f >>> isValidPassportWeak where
 
   parserYear :: Int -> Int -> Parser Int
   parserYear min max = do
-    a <- parserInt 10
+    a <- int 10
     case a >= min && a <= max of
       true -> pure a
       false -> fail $ "Expected year between " <> show min <> " and " <> show max
 
   parserHeight :: { minCm :: Int, maxCm :: Int, minIn :: Int, maxIn :: Int } -> Parser Height
   parserHeight r = do
-    h <- parserInt 10
+    h <- int 10
     u <- string "cm" <|> string "in"
     case u of
       "cm" -> if h >= r.minCm && h <= r.maxCm 
@@ -179,7 +145,7 @@ isValidPassport = filter f >>> isValidPassportWeak where
 
   parserFixedLengthDigitString :: Int -> Parser String
   parserFixedLengthDigitString l = try do
-    a <- fromCharArray <$> fromFoldable <$> many1 parserDigit
+    a <- fromCharArray <$> fromFoldable <$> many1 digit
     case SCU.length a of
       x | x == 9 -> pure a
       _ -> fail $ "Expected length is " <> show l
@@ -191,7 +157,7 @@ isValidPassport = filter f >>> isValidPassportWeak where
   f (Tuple "hcl" s) = check parserHexColor s
   f (Tuple "ecl" s) = check parserEyeColor s
   f (Tuple "pid" s) = check (parserFixedLengthDigitString 9) s
-  f (Tuple _ _) = false
+  f _               = false
 
 main :: Effect Unit
 main = do
