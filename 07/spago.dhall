@@ -1,10 +1,13 @@
-{ name = "lib"
+{-
+Welcome to a Spago project!
+You can edit this file as you like.
+-}
+{ name = "my-project"
 , dependencies =
-  [ "catenable-lists"
-  , "console"
+  [ "console"
   , "effect"
-  , "ordered-collections"
-  , "prelude"
+  , "lib"
+  , "lists"
   , "psci-support"
   , "string-parsers"
   ]
