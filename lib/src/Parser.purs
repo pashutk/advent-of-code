@@ -5,6 +5,7 @@ module Lib.Parser
   , int
   , manyAs1
   , oneConsecChar
+  , number
   ) where
 
 import Prelude
@@ -13,8 +14,10 @@ import Control.Alt ((<|>))
 import Data.Foldable (length)
 import Data.FoldableWithIndex (foldrWithIndex)
 import Data.Int (pow)
-import Text.Parsing.StringParser (Parser, try)
-import Text.Parsing.StringParser.CodeUnits (anyDigit, char, satisfy, string)
+import Data.Maybe (Maybe(..))
+import Data.Number (fromString)
+import Text.Parsing.StringParser (Parser, fail, try)
+import Text.Parsing.StringParser.CodeUnits (anyDigit, char, regex, satisfy, string)
 import Text.Parsing.StringParser.Combinators (lookAhead, many, many1)
 
 digit :: Parser Char
@@ -53,3 +56,10 @@ emptyLine = do
   _ <- char '\n'
   a <- char '\n'
   pure a
+
+number :: Parser Number
+number = do
+  a <- regex "\\d+(\\.\\d+)?"
+  case fromString a of
+    Just x -> pure x
+    Nothing -> fail "Failed to parse number"
